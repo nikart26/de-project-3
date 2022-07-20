@@ -1,17 +1,17 @@
 -- Delete
 -- DELETE from mart.f_customer_retention 
---     where period_id = (extract ('Year' from '{{ds}}'::date)::text||extract ('week' from '{{ds}}'::date)::text)::int;
+
 Truncate table mart.f_customer_retention;
 
 -- Update
 insert into mart.f_customer_retention (period_id,
-                                        new_customers_count, 
-                                        returning_customers_count, 
-                                        refunded_customer_count, 
-                                        period_name, item_id, 
-                                        new_customers_revenue, 
-                                        returning_customers_revenue,
-                                        customers_refunded)
+                                       new_customers_count, 
+                                       returning_customers_count, 
+                                       refunded_customer_count, 
+                                       period_name, item_id, 
+                                       new_customers_revenue, 
+                                       returning_customers_revenue,
+                                       customers_refunded)
 with q as (
  select distinct
  	q1.period_id as period_id,
@@ -20,21 +20,21 @@ with q as (
  	case when q1.status='refunded' then 'Y' end as is_refunded
  from 
 	 	(select 
-			(extract ('Year' from date_time)::text||extract ('week' from date_time)::text)::int4 as period_id,
+			(extract ('Year' from to_date(to_char(date_id, '99999999'), 'YYYYMMDD'))::text||extract ('week' from to_date(to_char(date_id, '99999999'), 'YYYYMMDD'))::text)::int4 as period_id,
 			customer_id as customer_id,
 			status as status,
 			count (id) as cust_events_count
-		from staging.user_order_log uol
+		from mart.f_sales 
 		group by period_id, customer_id, status) q1),
 	sq as (
 	select 
-		(extract ('Year' from date_time)::text||extract ('week' from date_time)::text)::int4 as period_id,
+		(extract ('Year' from to_date(to_char(date_id, '99999999'), 'YYYYMMDD'))::text||extract ('week' from to_date(to_char(date_id, '99999999'), 'YYYYMMDD'))::text)::int4 as period_id,
 		customer_id as customer_id,
 		status as status,
 		item_id as item_id,
 		count (id) as cust_events_count,
-		case when status = 'shipped' then sum(payment_amount) else sum(payment_amount)*(-1) end as revenue
-	from staging.user_order_log uol
+		sum(payment_amount) as revenue
+	from mart.f_sales
 	group by period_id, customer_id, status, item_id
 		)		
 			select 
